@@ -1,15 +1,86 @@
 var express = require("express");
-const port =  process.env.PORT || 8080;
+var bodyParser = require("body-parser");
+var mongoSanitize = require("express-mongo-sanitize");
+const port = process.env.PORT || 8080;
+var db = require("./db/mongo");
+var sessionUtil = require("./utility/session");
+var log = require("./logger")
+
+db.OpenDB().then((result) => {
 
 
-const app = express();
+    log.info("DB Connection OK: " + result)
+    const app = express();
 
-app.use(function(req,res){
-    res.json({
-        message:'Hello From Azure NodeJS App!'
+    app.use(bodyParser.json());
+    app.use(mongoSanitize({ replaceWith: '_' }));
+
+    //request response logger middleware
+    app.use(function (req, res, next) {
+        var send = res.send;
+        res.send = function (data) {
+            log.info("Response:" + data + "\n\n");
+            send.call(this, data);
+        };
+        log.info("Function:" + req.url);
+        log.info("Request" + JSON.stringify(req.body));
+        next();
+    });
+    app.post(["/api/open", "/api/open*"], function (request, response, next) {
+
+        var requestRedirect = require("./api/open" + request.url.replace('/api/open', ''));
+        requestRedirect(request, response).then(function (result) {
+            response.json(result);
+            next();
+        }).catch(function (err) {
+            response.json(err);
+            next();
+        })
+    });
+    app.post(["/api/auth", "/api/auth*"], function (request, response, next) {
+
+        var requestRedirect = require("./api/auth" + request.url.replace('/api/auth', ''));
+        var { username, session } = request.body;
+        if (username && session) {
+            sessionUtil.checksession(session, username).then(() => {
+                requestRedirect(request, response).then(function (result) {
+                    response.json(result);
+                    next();
+                }).catch(function (err) {
+                    response.json(err);
+                    next();
+                })
+            }).catch(function (err) {
+                response.json(err);
+                next();
+            });
+        } else {
+            response.json({ result: false, message: "Incorrect session." });
+            next();
+        }
+    }); 
+    //General Error Logger..
+    app.use(function (err, req, res, next) {
+        if (err) {
+            log.error("General Error:");
+            log.error(err.stack);
+        }
+        res.json({ message: "Global Error Occurred" });
+        next();
+    });
+
+
+
+
+
+
+
+
+
+    app.listen(port, () => {
+        log.info("App Initialized!");
     })
-})
 
-app.listen(port , ()=>{
-    console.log("App Initialized!");
+}).catch((err) => {
+    log.error("DB ERROR:" + err);
 })
