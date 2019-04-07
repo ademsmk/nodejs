@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/backend/index",
-    "bundle": "node ./node_modules/webpack/bin/webpack.js",
-    "postinstall": "node ./node_modules/webpack/bin/webpack.js"
+    "bundle": "node ./node_modules/webpack/bin/webpack",
+    "postinstall": "node ./node_modules/webpack/bin/webpack"
   },
   "repository": {
     "type": "git",
