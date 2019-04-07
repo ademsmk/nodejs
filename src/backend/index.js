@@ -26,6 +26,7 @@ db.OpenDB().then((result) => {
         log.info("Request" + JSON.stringify(req.body));
         next();
     });
+    app.use("/",express.static("publish"));
     app.post(["/api/open", "/api/open*"], function (request, response, next) {
 
         var requestRedirect = require("./api/open" + request.url.replace('/api/open', ''));
